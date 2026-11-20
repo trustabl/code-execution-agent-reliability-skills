@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sandbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t sandbox .
+      # The agent pattern: a script in the sandbox writes the skill and prints one line.
+      - name: Generate the skill inside the sandbox
+        run: |
+          cat > forge.mjs <<'EOF'
+          import { forge, SKILL_DESTINATION } from "@trustabl/code-execution-agent-reliability-skills";
+          const r = await forge("/workspace/test/fixture", { outputPath: SKILL_DESTINATION });
+          console.log(`${r.written} (${r.sdks.join(", ")})`);
+          if (!r.sdks.length || !r.written) process.exit(1);
+          EOF
+          docker run --rm -v "$PWD:/workspace" sandbox node forge.mjs
