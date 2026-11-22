@@ -1,0 +1,26 @@
+{
+  "name": "code-execution-agent-reliability-skills",
+  "displayName": "code-execution-agent-reliability-skills",
+  "version": "0.1.0",
+  "description": "Generate a pre-coding reliability skill for your agent repository with Trustabl Forge by writing and running a short script, so the skill is written to disk and only a one-line summary reaches the conversation. No API key needed.",
+  "homepage": "https://trustabl.ai",
+  "repository": "https://github.com/trustabl/code-execution-agent-reliability-skills",
+  "author": {
+    "name": "Trustabl",
+    "url": "https://trustabl.ai",
+    "email": "eng@trustabl.ai"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "code-execution",
+    "agents",
+    "reliability",
+    "skills",
+    "agent-sdk"
+  ],
+  "icon": "./assets/logo.png",
+  "documentationUrl": "https://github.com/trustabl/code-execution-agent-reliability-skills/tree/main/plugin#readme",
+  "supportUrl": "https://github.com/trustabl/code-execution-agent-reliability-skills/issues",
+  "privacyPolicyUrl": "https://github.com/trustabl/code-execution-agent-reliability-skills/blob/main/plugin/README.md#privacy",
+  "termsOfServiceUrl": "https://trustabl.ai/terms/"
+}
