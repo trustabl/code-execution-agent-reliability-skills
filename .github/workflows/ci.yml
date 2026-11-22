@@ -28,6 +28,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Plugin files are valid and the plugin skill matches the package skill
+        run: |
+          node -e "for (const f of ['plugin/.claude-plugin/plugin.json', 'plugin/.cursor-plugin/plugin.json']) JSON.parse(require('fs').readFileSync(f, 'utf8'))"
+          cmp skills/code-execution-agent-reliability-skills/SKILL.md plugin/skills/code-execution-agent-reliability-skills/SKILL.md
+          test -f plugin/assets/logo.png
       - run: docker build -t sandbox .
       # The agent pattern: a script in the sandbox writes the skill and prints one line.
       - name: Generate the skill inside the sandbox
