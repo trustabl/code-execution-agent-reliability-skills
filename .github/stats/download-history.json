@@ -1,0 +1,14 @@
+{
+  "repo": "trustabl/code-execution-agent-reliability-skills",
+  "unit": "cumulative_release_downloads",
+  "note": "GitHub release downloads (download_count summed over every release file), not users. Includes automated installs such as CI.",
+  "history": [
+    {
+      "date": "2026-11-24",
+      "downloads": 1,
+      "releases": {
+        "v0.1.0": 1
+      }
+    }
+  ]
+}
