@@ -8,8 +8,10 @@ description: Generate a pre-coding reliability skill for a repository with Trust
 Forge reads a repository's dependency manifests (`package.json`,
 `pyproject.toml`, `requirements.txt`, `go.mod` and others), finds the agent SDKs
 it uses, and builds a `SKILL.md` from Trustabl's detection rules for exactly
-those SDKs. The skill is tens of kilobytes: write it to disk from your script
-and print only what the user needs, not the skill itself.
+those SDKs. The skill is tens of kilobytes. Write it to disk, then show the
+user what was installed: the destination path and the sections it covers, and
+tell them they can open that file to read it in full. Print a summary, not the
+whole body — but never leave the install silent.
 
 ## Setup (once per sandbox)
 
@@ -44,14 +46,18 @@ The result has `skill` (the content), `sdks`, `stamp`, `written` and `note`.
 
 ## Patterns
 
-Write it and report one line:
+Write it and show the user what was installed (path, SDKs, sections, and where
+to read it in full):
 
 ```js
 const r = await forge(".", { outputPath: SKILL_DESTINATION });
-console.log(`${r.written} (${r.sdks.join(", ")})`);
+console.log(`Installed Trustabl reliability skill -> ${r.written}`);
+console.log(`Covers SDKs: ${r.sdks.join(", ")}`);
+console.log("Sections:\n" + r.skill.split("\n").filter((l) => l.startsWith("## ")).join("\n"));
+console.log(`Open ${r.written} to read the full skill before building.`);
 ```
 
-Just the section titles, to tell the user what it covers:
+Preview without writing (omit `outputPath`) to show the content first:
 
 ```js
 const r = await forge(".");
