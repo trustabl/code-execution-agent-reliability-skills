@@ -2,7 +2,7 @@
   "name": "code-execution-agent-reliability-skills",
   "displayName": "code-execution-agent-reliability-skills",
   "version": "0.1.0",
-  "description": "Generate a pre-coding reliability skill for your agent repository with Trustabl Forge by writing and running a short script, so the skill is written to disk and only a one-line summary reaches the conversation. No API key needed.",
+  "description": "Generate a pre-coding reliability skill for your agent repository with Trustabl Forge by writing and running a short script. Forge writes the skill to disk and reports the path it wrote and the rules it covers. No API key needed.",
   "homepage": "https://trustabl.ai",
   "repository": "https://github.com/trustabl/code-execution-agent-reliability-skills",
   "author": {
