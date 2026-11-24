@@ -1,0 +1,110 @@
+name: Download history
+
+# Weekly snapshot of cumulative downloads of this repo's release files.
+# GitHub exposes only the current total per release asset (download_count),
+# with no history, so each run records one dated entry and commits it.
+# A same-day rerun replaces that day's entry; earlier entries are never changed.
+#
+# The snapshot lands via a pull request, the same way trustabl/agent-reliability-analyzer
+# does it: create-pull-request reuses ONE rolling branch/PR and updates it each run -- a
+# single PR that accumulates snapshots until merged, not one per week -- and no-ops when the
+# JSON is unchanged. This keeps the history reviewable and keeps working if main is ever
+# branch-protected (a direct push would then fail with GH013).
+
+on:
+  schedule:
+    - cron: '0 16 * * 0'      # weekly, Monday 00:00 Philippine time (UTC+8) = Sunday 16:00 UTC
+  workflow_dispatch:           # run on demand to add an entry now
+
+permissions:
+  contents: write              # push the snapshot branch the PR is built from
+  pull-requests: write         # open/update the snapshot PR
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record cumulative downloads
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_REPO: ${{ github.repository }}
+          HISTORY_FILE: .github/stats/download-history.json
+        run: |
+          python3 - <<'PY'
+          import datetime, json, os, urllib.request
+
+          repo   = os.environ["TARGET_REPO"]
+          path   = os.environ["HISTORY_FILE"]
+          token  = os.environ.get("GITHUB_TOKEN", "")
+
+          def api(url):
+              req = urllib.request.Request(url)
+              req.add_header("Accept", "application/vnd.github+json")
+              req.add_header("X-GitHub-Api-Version", "2022-11-28")
+              req.add_header("User-Agent", "trustabl-download-history")
+              if token:
+                  req.add_header("Authorization", "Bearer " + token)
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.load(r)
+
+          releases, page = {}, 1
+          while True:
+              rels = api("https://api.github.com/repos/%s/releases?per_page=100&page=%d" % (repo, page))
+              if not rels:
+                  break
+              for rel in rels:
+                  if rel.get("draft"):
+                      continue
+                  releases[rel["tag_name"]] = sum(   # every release file: GitHub's own download total
+                      a.get("download_count", 0) for a in rel.get("assets", [])
+                  )
+              if len(rels) < 100:
+                  break
+              page += 1
+
+          day = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).date().isoformat()   # Philippine date, like the analyzer
+
+          if os.path.exists(path):
+              with open(path) as f:
+                  data = json.load(f)
+          else:
+              data = {"history": []}
+
+          hist = {p["date"]: p for p in data.get("history", [])}
+          # "date" and "downloads" match the analyzer/probe history format; "releases" is the per-release split.
+          hist[day] = {
+              "date": day,
+              "downloads": sum(releases.values()),
+              "releases": {tag: releases[tag] for tag in sorted(releases)},
+          }
+          out = {
+              "repo": repo,
+              "unit": "cumulative_release_downloads",
+              "note": "GitHub release downloads (download_count summed over every release file), not users. Includes automated installs such as CI.",
+              "history": [hist[d] for d in sorted(hist)],
+          }
+
+          os.makedirs(os.path.dirname(path), exist_ok=True)
+          with open(path, "w") as f:
+              json.dump(out, f, indent=2)
+              f.write("\n")
+          print("%s: %s = %d cumulative release downloads across %d releases" % (day, repo, out["history"][-1]["downloads"], len(releases)))
+          PY
+
+      - name: Open or update the snapshot PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: .github/stats/download-history.json
+          branch: chore/download-history
+          base: main
+          commit-message: "chore: record weekly download snapshot"
+          title: "chore: weekly download-history snapshot"
+          body: |
+            Automated weekly snapshot of cumulative release-asset downloads.
+            Updates `.github/stats/download-history.json` — safe to merge.
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          delete-branch: false
