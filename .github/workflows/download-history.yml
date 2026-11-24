@@ -5,11 +5,12 @@ name: Download history
 # with no history, so each run records one dated entry and commits it.
 # A same-day rerun replaces that day's entry; earlier entries are never changed.
 #
-# The snapshot lands via a pull request, the same way trustabl/agent-reliability-analyzer
-# does it: create-pull-request reuses ONE rolling branch/PR and updates it each run -- a
-# single PR that accumulates snapshots until merged, not one per week -- and no-ops when the
-# JSON is unchanged. This keeps the history reviewable and keeps working if main is ever
-# branch-protected (a direct push would then fail with GH013).
+# This repo's main is not branch-protected and GitHub Actions is not permitted to
+# open pull requests here, so the snapshot is committed straight to main with the
+# default GITHUB_TOKEN (contents: write). The downloads report reads
+# .github/stats/download-history.json from main. (The older Trustabl repos land
+# the same file via a snapshot PR; this one commits directly -- same file, same
+# format, read the same way.)
 
 on:
   schedule:
@@ -17,8 +18,7 @@ on:
   workflow_dispatch:           # run on demand to add an entry now
 
 permissions:
-  contents: write              # push the snapshot branch the PR is built from
-  pull-requests: write         # open/update the snapshot PR
+  contents: write              # commit the snapshot to main
 
 jobs:
   snapshot:
@@ -93,18 +93,14 @@ jobs:
           print("%s: %s = %d cumulative release downloads across %d releases" % (day, repo, out["history"][-1]["downloads"], len(releases)))
           PY
 
-      - name: Open or update the snapshot PR
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          add-paths: .github/stats/download-history.json
-          branch: chore/download-history
-          base: main
-          commit-message: "chore: record weekly download snapshot"
-          title: "chore: weekly download-history snapshot"
-          body: |
-            Automated weekly snapshot of cumulative release-asset downloads.
-            Updates `.github/stats/download-history.json` — safe to merge.
-          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
-          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
-          delete-branch: false
+      - name: Commit the snapshot to main
+        run: |
+          if [ -z "$(git status --porcelain .github/stats/download-history.json)" ]; then
+            echo "No change in download-history.json; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/stats/download-history.json
+          git commit -m "chore: record weekly download snapshot"
+          git push
